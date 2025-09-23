@@ -1,6 +1,6 @@
-import React, {useState, useEffect} from "react";
-import {useAuth} from "../context/AuthContext";
-import {useNavigate} from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function AddProduct() {
     const [categories, setCategories] = useState([]);
@@ -8,16 +8,17 @@ function AddProduct() {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
+        quantity: '',
         category_id: '',
-        warehouse_id: '',
-        quantity: 0
+        warehouse_id: ''
     });
-    const {user} = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchDropdownData();
     }, []);
+
     const fetchDropdownData = async () => {
         try {
             const [categoriesRes, warehousesRes] = await Promise.all([
@@ -32,7 +33,7 @@ function AddProduct() {
         }
     };
 
-     const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!user) {
@@ -65,7 +66,7 @@ function AddProduct() {
         }
     };
 
-     const handleChange = (e) => {
+    const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
@@ -73,7 +74,7 @@ function AddProduct() {
     };
 
     return (
-         <div className="add-product">
+        <div className="add-product">
             <h1>Add New Product</h1>
             
             <form onSubmit={handleSubmit} className="product-form">
@@ -108,8 +109,8 @@ function AddProduct() {
                         value={formData.quantity}
                         onChange={handleChange}
                         required
-                    /> 
-                     </div>
+                    />
+                </div>
 
                 <div className="form-group">
                     <label>Category:</label>
@@ -138,7 +139,6 @@ function AddProduct() {
                 <button type="submit" className="submit-btn">Add Product</button>
             </form>
         </div>
-
     );
 }
 

@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-function ProductCard({product, onEdit, onDelete}) {
+function ProductCard({ product, onEdit, onDelete }) {
     return (
         <div className="product-card">
             <h3>{product.name}</h3>
@@ -14,7 +14,6 @@ function ProductCard({product, onEdit, onDelete}) {
                 <button onClick={() => onEdit(product)} className="edit-btn">Edit</button>
                 <button onClick={() => onDelete(product.id)} className="delete-btn">Delete</button>
             </div>
-           
         </div>
     );
 }

@@ -1,29 +1,30 @@
-import React, {createContext, useState, useContext, useEffect} from "react";
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
+        throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
-}
+};
 
-export const AuthProvider = ({children}) => {
+export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const savedUser = localoStorage.getItem('inventorix_user');
+        // Check if user is logged in on app start
+        const savedUser = localStorage.getItem('inventorix_user');
         if (savedUser) {
             setUser(JSON.parse(savedUser));
         }
         setIsLoading(false);
     }, []);
 
-     const login = async (username, password) => {
+    const login = async (username, password) => {
         try {
             const response = await fetch('http://localhost:5555/login', {
                 method: 'POST',
@@ -32,6 +33,7 @@ export const AuthProvider = ({children}) => {
                 },
                 body: JSON.stringify({ username, password }),
             });
+
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
@@ -85,13 +87,12 @@ export const AuthProvider = ({children}) => {
         signup,
         logout,
         openLogin,
-        closeLogin,
+        closeLogin
     };
 
     return (
         <AuthContext.Provider value={value}>
             {children}
-        </AuthContext.Provider>  
+        </AuthContext.Provider>
     );
 };
-            

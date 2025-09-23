@@ -1,6 +1,6 @@
-import React,{useState, useEffect} from "react";
-import {useNavigate} from "react-router-dom";
-import ProductCard from "../components/ProductCard";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ProductCard from '../components/ProductCard';
 
 function Products() {
     const [products, setProducts] = useState([]);
@@ -10,7 +10,7 @@ function Products() {
         fetchProducts();
     }, []);
 
-     const fetchProducts = async () => {
+    const fetchProducts = async () => {
         try {
             const response = await fetch('http://localhost:5555/products');
             const data = await response.json();
@@ -20,7 +20,7 @@ function Products() {
         }
     };
 
-     const handleEdit = (product) => {
+    const handleEdit = (product) => {
         navigate(`/edit-product/${product.id}`, { state: { product } });
     };
 
@@ -37,7 +37,7 @@ function Products() {
         }
     };
 
-     return (
+    return (
         <div className="products-page">
             <div className="page-header">
                 <h1>Products Management</h1>

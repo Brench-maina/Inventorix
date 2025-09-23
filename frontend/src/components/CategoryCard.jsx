@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-function categoryCard({category}) {
-     return (
+function CategoryCard({ category }) {
+    return (
         <div className="category-card">
             <h3>{category.name}</h3>
             <div className={`status ${category.in_stock ? 'in-stock' : 'out-of-stock'}`}>
@@ -11,6 +11,4 @@ function categoryCard({category}) {
     );
 }
 
-
-export default categoryCard;
-        
+export default CategoryCard;

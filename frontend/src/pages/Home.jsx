@@ -1,21 +1,17 @@
-import React, {useState, useEffect} from "react";
-import CategoryCard from "../components/CategoryCard";
-import WarehouseCard from "../components/WarehouseCard";
+import React, { useState, useEffect } from 'react';
+import CategoryCard from '../components/CategoryCard';
+import WarehouseCard from '../components/WarehouseCard';
 
 function Home() {
     const [categories, setCategories] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
-    const [stats, setStats] = useState({
-        totalProducts: 0,
-        totalCategories: 0,
-        totalWarehouses: 0
-    });
+    const [stats, setStats] = useState({ total_products: 0, total_categories: 0, total_warehouses: 0 });
 
     useEffect(() => {
         fetchData();
     }, []);
 
-     const fetchData = async () => {
+    const fetchData = async () => {
         try {
             const [categoriesRes, warehousesRes, statsRes] = await Promise.all([
                 fetch('http://localhost:5555/categories'),
@@ -31,11 +27,12 @@ function Home() {
         }
     };
 
-     return (
+    return (
         <div className="home">
             <div className="welcome-section">
                 <h1>Welcome to Inventorix</h1>
                 <p>Your complete inventory management solution</p>
+                <p> This smart inventory and supplier management system designed to help businesses stay organized, save time, and boost efficiency.</p>
                 <div className="stats">
                     <div className="stat-card">
                         <h3>Total Products</h3>
@@ -61,7 +58,7 @@ function Home() {
                 </div>
             </div>
 
-             <div className="warehouses-section">
+            <div className="warehouses-section">
                 <h2>Our Warehouses</h2>
                 <div className="warehouses-grid">
                     {warehouses.map(warehouse => (
@@ -74,6 +71,3 @@ function Home() {
 }
 
 export default Home;
-
-
-

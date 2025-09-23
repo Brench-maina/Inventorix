@@ -1,9 +1,9 @@
-import React from "react";
-import {link} from "react-router-dom";
-import {useAuth} from "../context/AuthContext";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function Navbar() {
-    const {user, logout, openLogin } = useAuth();
+    const { user, logout, openLogin } = useAuth();
 
     return (
         <nav className="navbar">
@@ -29,7 +29,4 @@ function Navbar() {
     );
 }
 
-export default Navbar; 
-
-   
-                    
+export default Navbar;

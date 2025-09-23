@@ -1,8 +1,8 @@
-import React from "react";
-import {useAuth} from "../context/AuthContext";
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 function LoginForm() {
-    const {login, signup, closeLogin, isLoginOpen} = useAuth();
+    const { login, signup, closeLogin, isLoginOpen } = useAuth();
     const [isSignup, setIsSignup] = useState(false);
     const [formData, setFormData] = useState({
         business_name: '',
@@ -13,24 +13,23 @@ function LoginForm() {
     const [error, setError] = useState('');
 
     if (!isLoginOpen) return null;
-    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
         if (isSignup) {
             const result = await signup(formData);
-            if (!result.success) {
-
+            if (result.success) {
+                // Auto-login after signup
                 const loginResult = await login(formData.username, formData.password);
-
                 if (!loginResult.success) {
                     setError(loginResult.error);
-                }   
-            }else{
+                }
+            } else {
                 setError(result.error);
             }
-        }else{
+        } else {
             const result = await login(formData.username, formData.password);
             if (!result.success) {
                 setError(result.error);
@@ -44,8 +43,8 @@ function LoginForm() {
             [e.target.name]: e.target.value
         });
     };
-    
-     const switchMode = () => {
+
+    const switchMode = () => {
         setIsSignup(!isSignup);
         setError('');
         setFormData({
@@ -85,8 +84,8 @@ function LoginForm() {
                         onChange={handleChange}
                         required
                     />
-
-                     {isSignup && (
+                    
+                    {isSignup && (
                         <input
                             type="email"
                             name="email"
@@ -121,5 +120,3 @@ function LoginForm() {
 }
 
 export default LoginForm;
-
-
