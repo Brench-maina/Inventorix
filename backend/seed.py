@@ -1,5 +1,5 @@
 from app import app
-from models import db, User, Category, Warehouse, Product
+from models import db, User, Category, Warehouse, Product, product_warehouses
 
 with app.app_context():
     # Clear existing data
@@ -43,34 +43,31 @@ with app.app_context():
     db.session.add_all(warehouses)
     db.session.commit()
 
-    # Create products
+    # ------------------ PRODUCTS ------------------
     products = [
-        Product(
-            name="Laptop",
-            price=1200.00,
-            quantity=15,
-            category_id=1,
-            warehouse_id=1,
-            user_id=1
-        ),
-        Product(
-            name="Office Chair",
-            price=150.00,
-            quantity=30,
-            category_id=2,
-            warehouse_id=2,
-            user_id=1
-        ),
-        Product(
-            name="Printer",
-            price=300.00,
-            quantity=8,
-            category_id=1,
-            warehouse_id=1,
-            user_id=1
-        )
+        Product(name="Laptop", price=1200.00, category_id=1, user_id=1),
+        Product(name="Office Chair", price=150.00, category_id=2, user_id=1),
+        Product(name="Printer", price=300.00, category_id=1, user_id=1)
     ]
     db.session.add_all(products)
-    db.session.commit()
+    db.session.flush()  # Get IDs before committing
 
+    # ------------------ LINK PRODUCTS TO WAREHOUSES ------------------
+    product_warehouse_links = [
+        {"product_id": products[0].id, "warehouse_id": 1, "quantity": 15},  # Laptop -> Main Warehouse
+        {"product_id": products[0].id, "warehouse_id": 2, "quantity": 10},  # Laptop -> Westside Storage
+        {"product_id": products[1].id, "warehouse_id": 2, "quantity": 30},  # Office Chair -> Westside Storage
+        {"product_id": products[2].id, "warehouse_id": 1, "quantity": 8},   # Printer -> Main Warehouse
+    ]
+
+    for link in product_warehouse_links:
+        stmt = product_warehouses.insert().values(
+            product_id=link['product_id'],
+            warehouse_id=link['warehouse_id'],
+            quantity=link['quantity']
+        )
+        db.session.execute(stmt)
+
+    db.session.commit()
+    
     print("Database seeded successfully!")

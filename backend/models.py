@@ -55,6 +55,13 @@ class Category(db.Model, SerializerMixin):
     
     serialize_rules = ('-products.category',)
 
+# Association table for many-to-many relationship between Products and Warehouses  
+product_warehouses = db.Table("product_warehouses", 
+    db.Column("product_id", db.Integer, db.ForeignKey("products.id"), primary_key=True),
+    db.Column("warehouse_id", db.Integer, db.ForeignKey("warehouses.id"), primary_key=True),
+    db.Column("quantity", db.Integer, nullable=False, default=0)
+)    
+
 class Warehouse(db.Model, SerializerMixin):
     __tablename__ = 'warehouses'
     
@@ -64,9 +71,9 @@ class Warehouse(db.Model, SerializerMixin):
     supplier = db.Column(db.String(100))
     
     # Relationships
-    products = db.relationship('Product', backref='warehouse', cascade='all, delete-orphan')
+    products = db.relationship('Product',secondary='product_warehouses',  back_populates='warehouses')
     
-    serialize_rules = ('-products.warehouse',)
+    serialize_rules = ('-products.warehouses',)
 
 class Product(db.Model, SerializerMixin):
     __tablename__ = 'products'
@@ -74,15 +81,18 @@ class Product(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
+
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
     # Foreign keys
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
-    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=False)
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
-    serialize_rules = ('-category.products', '-warehouse.products', '-user.products')
+    #many-to-many relationship with warehouses
+    warehouses = db.relationship('Warehouse', secondary='product_warehouses', back_populates='products')
+
+    serialize_rules = ('-category.products', '-warehouses.products', '-user.products')
     
     @validates('price')
     def validate_price(self, key, price):
@@ -90,8 +100,10 @@ class Product(db.Model, SerializerMixin):
             raise ValueError("Price must be positive")
         return price
     
-    @validates('quantity')
-    def validate_quantity(self, key, quantity):
-        if quantity < 0:
-            raise ValueError("Quantity cannot be negative")
-        return quantity
+    @validates('name')
+    def validate_name(self, key, name):
+        if not name:
+            raise ValueError("Product name cannot be empty")
+        return name
+
+

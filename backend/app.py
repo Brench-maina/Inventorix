@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_restful import Api, Resource
 from flask_migrate import Migrate
 from flask_cors import CORS
-from models import db, User, Product, Category, Warehouse
+from models import db, User, Product, Category, Warehouse, product_warehouses
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventorix.db'
@@ -74,6 +74,36 @@ class Categories(Resource):
         except Exception as e:
             return make_response(jsonify({'error': str(e)}), 400)
 
+class CategoriesById(Resource):
+    def get(self, id):
+        category = Category.query.get(id)
+        if category:
+            return make_response(jsonify(category.to_dict()), 200)
+        return make_response(jsonify({'error': 'Category not found'}), 404)
+    
+    def patch(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return make_response(jsonify({'error': 'Category not found'}), 404)
+        
+        data = request.get_json()
+        try:
+            for attr in data:
+                setattr(category, attr, data[attr])
+            db.session.commit()
+            return make_response(jsonify(category.to_dict()), 200)
+        except ValueError as e:
+            return make_response(jsonify({'error': str(e)}), 400)
+    
+    def delete(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return make_response(jsonify({'error': 'Category not found'}), 404)
+        
+        db.session.delete(category)
+        db.session.commit()
+        return make_response('', 204)        
+
 class Warehouses(Resource):
     def get(self):
         warehouses = [warehouse.to_dict() for warehouse in Warehouse.query.all()]
@@ -93,26 +123,71 @@ class Warehouses(Resource):
         except Exception as e:
             return make_response(jsonify({'error': str(e)}), 400)
 
+class WarehousesById(Resource):
+    def get(self, id):
+        warehouse = Warehouse.query.get(id)
+        if warehouse:
+            return make_response(jsonify(warehouse.to_dict()), 200)
+        return make_response(jsonify({'error': 'Warehouse not found'}), 404)
+    
+    def patch(self, id):
+        warehouse = Warehouse.query.get(id)
+        if not warehouse:
+            return make_response(jsonify({'error': 'Warehouse not found'}), 404)
+        
+        data = request.get_json()
+        try:
+            for attr in data:
+                setattr(warehouse, attr, data[attr])
+            db.session.commit()
+            return make_response(jsonify(warehouse.to_dict()), 200)
+        except ValueError as e:
+            return make_response(jsonify({'error': str(e)}), 400)
+    
+    def delete(self, id):
+        warehouse = Warehouse.query.get(id)
+        if not warehouse:
+            return make_response(jsonify({'error': 'Warehouse not found'}), 404)
+        
+        db.session.delete(warehouse)
+        db.session.commit()
+        return make_response('', 204)        
+
 class Products(Resource):
     def get(self):
         products = [product.to_dict() for product in Product.query.all()]
         return make_response(jsonify(products), 200)
-    
+
     def post(self):
         data = request.get_json()
         try:
+            # Create product
             product = Product(
                 name=data['name'],
                 price=data['price'],
-                quantity=data['quantity'],
+                
                 category_id=data['category_id'],
-                warehouse_id=data['warehouse_id'],
+
                 user_id=data['user_id']
             )
             db.session.add(product)
+            db.session.flush()  # Get product.id before committing
+
+            # Link warehouses with quantities
+            warehouses = data.get('warehouses', [])
+            for w in warehouses:
+                stmt = product_warehouses.insert().values(
+                    product_id=product.id,
+                    warehouse_id=w['warehouse_id'],
+                    quantity=w['quantity']
+                )
+                db.session.execute(stmt)
+
             db.session.commit()
             return make_response(jsonify(product.to_dict()), 201)
-        except ValueError as e:
+
+        except Exception as e:
+            db.session.rollback()
             return make_response(jsonify({'error': str(e)}), 400)
 
 class ProductsById(Resource):
@@ -121,29 +196,57 @@ class ProductsById(Resource):
         if product:
             return make_response(jsonify(product.to_dict()), 200)
         return make_response(jsonify({'error': 'Product not found'}), 404)
-    
+
     def patch(self, id):
         product = Product.query.get(id)
         if not product:
             return make_response(jsonify({'error': 'Product not found'}), 404)
-        
+
         data = request.get_json()
         try:
-            for attr in data:
-                setattr(product, attr, data[attr])
+          
+            for attr in ['name', 'price', 'category_id', 'user_id']:
+                if attr in data:
+                    setattr(product, attr, data[attr])
+
+            
+            warehouses = data.get('warehouses')
+            if warehouses is not None:
+                
+                db.session.execute(
+                    product_warehouses.delete().where(product_warehouses.c.product_id == product.id)
+                )
+               
+                for w in warehouses:
+                    stmt = product_warehouses.insert().values(
+                        product_id=product.id,
+                        warehouse_id=w['warehouse_id'],
+                        quantity=w['quantity']
+                    )
+                    db.session.execute(stmt)
+
             db.session.commit()
             return make_response(jsonify(product.to_dict()), 200)
-        except ValueError as e:
+
+        except Exception as e:
+            db.session.rollback()
             return make_response(jsonify({'error': str(e)}), 400)
-    
+
     def delete(self, id):
         product = Product.query.get(id)
         if not product:
             return make_response(jsonify({'error': 'Product not found'}), 404)
-        
-        db.session.delete(product)
-        db.session.commit()
-        return make_response('', 204)
+        try:
+            # Delete associated warehouse links first
+            db.session.execute(
+                product_warehouses.delete().where(product_warehouses.c.product_id == product.id)
+            )
+            db.session.delete(product)
+            db.session.commit()
+            return make_response('', 204)
+        except Exception as e:
+            db.session.rollback()
+            return make_response(jsonify({'error': str(e)}), 400)
 
 class Stats(Resource):
     def get(self):
@@ -162,7 +265,9 @@ api.add_resource(Home, '/')
 api.add_resource(Login, '/login')
 api.add_resource(Users, '/users')
 api.add_resource(Categories, '/categories')
+api.add_resource(CategoriesById, '/categories/<int:id>')
 api.add_resource(Warehouses, '/warehouses')
+api.add_resource(WarehousesById, '/warehouses/<int:id>')
 api.add_resource(Products, '/products')
 api.add_resource(ProductsById, '/products/<int:id>')
 api.add_resource(Stats, '/stats')
