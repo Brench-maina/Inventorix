@@ -6,8 +6,7 @@ import LoginForm from './components/LoginForm';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import AddProduct from './pages/AddProduct';
-import Category from './pages/Category';
-import Warehouse from './pages/Warehouse';
+import InventorySetup from './pages/InventorySetup';
 import './main.css';
 
 function App() {
@@ -24,8 +23,7 @@ function App() {
                             <Route path="/products" element={<Products />} />
                             <Route path="/add-product" element={<AddProduct />} />
                             <Route path="/edit-product/:id" element={<AddProduct />} />
-                            <Route path="/add-category" element={<Category />} />
-                            <Route path="/warehouses" element={<Warehouse />} />
+                            <Route path="/inventory-setup" element={<InventorySetup />} />
                         </Routes>
                     </main>
                 </div>
