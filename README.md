@@ -32,14 +32,10 @@ It allows businesses to manage products, suppliers, and warehouses efficiently.
 - Seed script for demo data
 
 **Managing Inventory**
-
-    Setup Phase: Use the "Inventory Setup" page to create warehouses and categories
-
-    Add Products: Navigate to "Add Product" to create new inventory items
-
-    View Inventory: Check "Products" page to see all items
-
-    Organize: Use "Categories" page to manage product groupings
+Setup Phase: Use the "Inventory Setup" page to create warehouses and categories
+Add Products: Navigate to "Add Product" to create new inventory items
+View Inventory: Check "Products" page to see all items
+Organize: Use "Categories" page to manage product groupings
 
 **API Endpoints**
 
