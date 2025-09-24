@@ -59,7 +59,7 @@ function Home() {
             </div>
 
             <div className="warehouses-section">
-                <h2>Our Warehouses</h2>
+                <h2>Warehouses</h2>
                 <div className="warehouses-grid">
                     {warehouses.map(warehouse => (
                         <WarehouseCard key={warehouse.id} warehouse={warehouse} />

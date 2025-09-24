@@ -15,6 +15,8 @@ function Navbar() {
                 <Link to="/">Home</Link>
                 <Link to="/products">Products</Link>
                 <Link to="/add-product">Add Product</Link>
+                <Link to="/add-category">Category</Link>
+                <Link to="/warehouses">Warehouses</Link>
                 
                 {user ? (
                     <div className="user-section">

@@ -8,9 +8,8 @@ function AddProduct() {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
-        quantity: '',
         category_id: '',
-        warehouse_id: ''
+        warehouse:[]
     });
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -50,7 +49,7 @@ function AddProduct() {
                 body: JSON.stringify({
                     ...formData,
                     price: parseFloat(formData.price),
-                    quantity: parseInt(formData.quantity),
+                    
                     user_id: user.id
                 }),
             });
