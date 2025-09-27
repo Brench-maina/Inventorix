@@ -1,276 +1,239 @@
 from flask import Flask, request, jsonify, make_response
-from flask_restful import Api, Resource
 from flask_migrate import Migrate
 from flask_cors import CORS
-from models import db, User, Product, Category, Warehouse, product_warehouses
+from models import db, User, Product, Category, Warehouse
+from auth import token_required
+import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventorix.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
 
 CORS(app)
 migrate = Migrate(app, db)
 db.init_app(app)
-api = Api(app)
 
-class Home(Resource):
-    def get(self):
-        return {'message': 'Inventorix API'}
 
-class Login(Resource):
-    def post(self):
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.authenticate(password):
-            return make_response(jsonify({
-                'id': user.id,
-                'username': user.username,
-                'business_name': user.business_name,
-                'email': user.email
-            }), 200)
-        else:
-            return make_response(jsonify({'error': 'Invalid credentials'}), 401)
+@app.route("/")
+def home():
+    return {"message": "Inventorix API"}
 
-class Users(Resource):
-    def get(self):
-        users = [user.to_dict() for user in User.query.all()]
-        return make_response(jsonify(users), 200)
-    
-    def post(self):
+
+#auth routes
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username, password = data.get('username'), data.get('password')
+
+    user = User.query.filter_by(username=username).first()
+    if user and user.authenticate(password):
+        token = user.generate_token()
+        return jsonify({"token": token, "user": user.to_dict()}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json()
+    try:
+        user = User(
+            business_name=data['business_name'],
+            username=data['username'],
+            email=data['email']
+        )
+        user.password = data['password']
+        db.session.add(user)
+        db.session.commit()
+        return jsonify(user.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/users", methods=["GET"])
+@token_required
+def get_user(current_user):
+    return jsonify(current_user.to_dict()), 200
+
+
+# categories routes
+@app.route("/categories", methods=["GET"])
+@token_required
+def get_categories(current_user):
+    categories = Category.query.filter_by(user_id=current_user.id).all()
+    return jsonify([c.to_dict() for c in categories]), 200
+
+
+@app.route("/categories", methods=["POST"])
+@token_required
+def create_category(current_user):
+    data = request.get_json()
+    try:
+        category = Category(
+            name=data['name'],
+            in_stock=data.get('in_stock', True),
+            user_id=current_user.id
+        )
+        db.session.add(category)
+        db.session.commit()
+        return jsonify(category.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/categories/<int:id>", methods=["GET", "PATCH", "DELETE"])
+@token_required
+def handle_category(current_user, id):
+    category = Category.query.filter_by(id=id, user_id=current_user.id).first()
+    if not category:
+        return jsonify({"error": "Category not found"}), 404
+
+    if request.method == "GET":
+        return jsonify(category.to_dict()), 200
+
+    if request.method == "PATCH":
         data = request.get_json()
         try:
-            user = User(
-                business_name=data['business_name'],
-                username=data['username'],
-                email=data['email'],
-                password=data['password']
-            )
-            db.session.add(user)
+            for key, value in data.items():
+                setattr(category, key, value)
             db.session.commit()
-            return make_response(jsonify(user.to_dict()), 201)
-        except ValueError as e:
-            return make_response(jsonify({'error': str(e)}), 400)
-
-class Categories(Resource):
-    def get(self):
-        categories = [category.to_dict() for category in Category.query.all()]
-        return make_response(jsonify(categories), 200)
-    
-    def post(self):
-        data = request.get_json()
-        try:
-            category = Category(
-                name=data['name'],
-                in_stock=data.get('in_stock', True)
-            )
-            db.session.add(category)
-            db.session.commit()
-            return make_response(jsonify(category.to_dict()), 201)
+            return jsonify(category.to_dict()), 200
         except Exception as e:
-            return make_response(jsonify({'error': str(e)}), 400)
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
-class CategoriesById(Resource):
-    def get(self, id):
-        category = Category.query.get(id)
-        if category:
-            return make_response(jsonify(category.to_dict()), 200)
-        return make_response(jsonify({'error': 'Category not found'}), 404)
-    
-    def patch(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return make_response(jsonify({'error': 'Category not found'}), 404)
-        
-        data = request.get_json()
-        try:
-            for attr in data:
-                setattr(category, attr, data[attr])
-            db.session.commit()
-            return make_response(jsonify(category.to_dict()), 200)
-        except ValueError as e:
-            return make_response(jsonify({'error': str(e)}), 400)
-    
-    def delete(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return make_response(jsonify({'error': 'Category not found'}), 404)
-        
+    if request.method == "DELETE":
         db.session.delete(category)
         db.session.commit()
-        return make_response('', 204)        
+        return "", 204
 
-class Warehouses(Resource):
-    def get(self):
-        warehouses = [warehouse.to_dict() for warehouse in Warehouse.query.all()]
-        return make_response(jsonify(warehouses), 200)
-    
-    def post(self):
+#warehouses routes
+@app.route("/warehouses", methods=["GET"])
+@token_required
+def get_warehouses(current_user):
+    warehouses = Warehouse.query.filter_by(user_id=current_user.id).all()
+    return jsonify([w.to_dict() for w in warehouses]), 200
+
+
+@app.route("/warehouses", methods=["POST"])
+@token_required
+def create_warehouse(current_user):
+    data = request.get_json()
+    try:
+        warehouse = Warehouse(
+            name=data['name'],
+            location=data['location'],
+            supplier=data.get('supplier', ''),
+            user_id=current_user.id
+        )
+        db.session.add(warehouse)
+        db.session.commit()
+        return jsonify(warehouse.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/warehouses/<int:id>", methods=["GET", "PATCH", "DELETE"])
+@token_required
+def handle_warehouse(current_user, id):
+    warehouse = Warehouse.query.filter_by(id=id, user_id=current_user.id).first()
+    if not warehouse:
+        return jsonify({"error": "Warehouse not found"}), 404
+
+    if request.method == "GET":
+        return jsonify(warehouse.to_dict()), 200
+
+    if request.method == "PATCH":
         data = request.get_json()
         try:
-            warehouse = Warehouse(
-                name=data['name'],
-                location=data['location'],
-                supplier=data.get('supplier', '')
-            )
-            db.session.add(warehouse)
+            for key, value in data.items():
+                setattr(warehouse, key, value)
             db.session.commit()
-            return make_response(jsonify(warehouse.to_dict()), 201)
+            return jsonify(warehouse.to_dict()), 200
         except Exception as e:
-            return make_response(jsonify({'error': str(e)}), 400)
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
-class WarehousesById(Resource):
-    def get(self, id):
-        warehouse = Warehouse.query.get(id)
-        if warehouse:
-            return make_response(jsonify(warehouse.to_dict()), 200)
-        return make_response(jsonify({'error': 'Warehouse not found'}), 404)
-    
-    def patch(self, id):
-        warehouse = Warehouse.query.get(id)
-        if not warehouse:
-            return make_response(jsonify({'error': 'Warehouse not found'}), 404)
-        
-        data = request.get_json()
-        try:
-            for attr in data:
-                setattr(warehouse, attr, data[attr])
-            db.session.commit()
-            return make_response(jsonify(warehouse.to_dict()), 200)
-        except ValueError as e:
-            return make_response(jsonify({'error': str(e)}), 400)
-    
-    def delete(self, id):
-        warehouse = Warehouse.query.get(id)
-        if not warehouse:
-            return make_response(jsonify({'error': 'Warehouse not found'}), 404)
-        
+    if request.method == "DELETE":
         db.session.delete(warehouse)
         db.session.commit()
-        return make_response('', 204)        
+        return "", 204
+    
+#products routes
+@app.route("/products", methods=["GET"])
+@token_required
+def get_products(current_user):
+    products = Product.query.filter_by(user_id=current_user.id).all()
+    return jsonify([p.to_dict() for p in products]), 200
 
-class Products(Resource):
-    def get(self):
-        products = [product.to_dict() for product in Product.query.all()]
-        return make_response(jsonify(products), 200)
 
-    def post(self):
+@app.route("/products", methods=["POST"])
+@token_required
+def create_product(current_user):
+    data = request.get_json()
+    try:
+        product = Product(
+            name=data["name"],
+            price=data["price"],
+            quantity=data.get("quantity", 0),
+            category_id=data["category_id"],
+            warehouse_id=data["warehouse_id"],  # ✅ direct FK now
+            user_id=current_user.id
+        )
+        db.session.add(product)
+        db.session.commit()
+        return jsonify(product.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/products/<int:id>", methods=["GET", "PATCH", "DELETE"])
+@token_required
+def handle_product(current_user, id):
+    product = Product.query.filter_by(id=id, user_id=current_user.id).first()
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    if request.method == "GET":
+        return jsonify(product.to_dict()), 200
+
+    if request.method == "PATCH":
         data = request.get_json()
         try:
-            # Create product
-            product = Product(
-                name=data['name'],
-                price=data['price'],
-                
-                category_id=data['category_id'],
-
-                user_id=data['user_id']
-            )
-            db.session.add(product)
-            db.session.flush()  # Get product.id before committing
-
-            # Link warehouses with quantities
-            warehouses = data.get('warehouses', [])
-            for w in warehouses:
-                stmt = product_warehouses.insert().values(
-                    product_id=product.id,
-                    warehouse_id=w['warehouse_id'],
-                    quantity=w['quantity']
-                )
-                db.session.execute(stmt)
-
+            for key in ["name", "price", "quantity", "category_id", "warehouse_id"]:
+                if key in data:
+                    setattr(product, key, data[key])
             db.session.commit()
-            return make_response(jsonify(product.to_dict()), 201)
-
+            return jsonify(product.to_dict()), 200
         except Exception as e:
             db.session.rollback()
-            return make_response(jsonify({'error': str(e)}), 400)
+            return jsonify({"error": str(e)}), 400
 
-class ProductsById(Resource):
-    def get(self, id):
-        product = Product.query.get(id)
-        if product:
-            return make_response(jsonify(product.to_dict()), 200)
-        return make_response(jsonify({'error': 'Product not found'}), 404)
-
-    def patch(self, id):
-        product = Product.query.get(id)
-        if not product:
-            return make_response(jsonify({'error': 'Product not found'}), 404)
-
-        data = request.get_json()
+    if request.method == "DELETE":
         try:
-          
-            for attr in ['name', 'price', 'category_id', 'user_id']:
-                if attr in data:
-                    setattr(product, attr, data[attr])
-
-            
-            warehouses = data.get('warehouses')
-            if warehouses is not None:
-                
-                db.session.execute(
-                    product_warehouses.delete().where(product_warehouses.c.product_id == product.id)
-                )
-               
-                for w in warehouses:
-                    stmt = product_warehouses.insert().values(
-                        product_id=product.id,
-                        warehouse_id=w['warehouse_id'],
-                        quantity=w['quantity']
-                    )
-                    db.session.execute(stmt)
-
-            db.session.commit()
-            return make_response(jsonify(product.to_dict()), 200)
-
-        except Exception as e:
-            db.session.rollback()
-            return make_response(jsonify({'error': str(e)}), 400)
-
-    def delete(self, id):
-        product = Product.query.get(id)
-        if not product:
-            return make_response(jsonify({'error': 'Product not found'}), 404)
-        try:
-            # Delete associated warehouse links first
-            db.session.execute(
-                product_warehouses.delete().where(product_warehouses.c.product_id == product.id)
-            )
             db.session.delete(product)
             db.session.commit()
-            return make_response('', 204)
+            return "", 204
         except Exception as e:
             db.session.rollback()
-            return make_response(jsonify({'error': str(e)}), 400)
+            return jsonify({"error": str(e)}), 400
 
-class Stats(Resource):
-    def get(self):
-        total_products = Product.query.count()
-        total_categories = Category.query.count()
-        total_warehouses = Warehouse.query.count()
-        
-        return make_response(jsonify({
-            'total_products': total_products,
-            'total_categories': total_categories,
-            'total_warehouses': total_warehouses
-        }), 200)
 
-# Add routes
-api.add_resource(Home, '/')
-api.add_resource(Login, '/login')
-api.add_resource(Users, '/users')
-api.add_resource(Categories, '/categories')
-api.add_resource(CategoriesById, '/categories/<int:id>')
-api.add_resource(Warehouses, '/warehouses')
-api.add_resource(WarehousesById, '/warehouses/<int:id>')
-api.add_resource(Products, '/products')
-api.add_resource(ProductsById, '/products/<int:id>')
-api.add_resource(Stats, '/stats')
+# stats route
+@app.route("/stats", methods=["GET"])
+@token_required
+def stats(current_user):
+    return jsonify({
+        "total_products": Product.query.filter_by(user_id=current_user.id).count(),
+        "total_categories": Category.query.filter_by(user_id=current_user.id).count(),
+        "total_warehouses": Warehouse.query.filter_by(user_id=current_user.id).count()
+    }), 200
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(port=5555, debug=True)
