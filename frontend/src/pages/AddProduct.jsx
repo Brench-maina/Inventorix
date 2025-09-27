@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function AddProduct() {
@@ -8,22 +8,54 @@ function AddProduct() {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
+        quantity: '',
         category_id: '',
-        warehouse:[]
+        warehouse_id: '',
     });
+
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const editingProduct = location.state?.product || null;
+
+    //Pre-fill form if editing
+    useEffect(() => {
+        if (editingProduct) {
+            setFormData({
+                name: editingProduct.name || '',
+                price: editingProduct.price || '',
+                quantity: editingProduct.quantity || '',
+                category_id: editingProduct.category_id || '',
+                warehouse_id: editingProduct.warehouse_id || '',
+            });
+        }
+    }, [editingProduct]);
 
     useEffect(() => {
         fetchDropdownData();
     }, []);
 
     const fetchDropdownData = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login to continue');
+            navigate('/login');
+            return;
+        }
         try {
+            const headers = {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            };
             const [categoriesRes, warehousesRes] = await Promise.all([
-                fetch('http://localhost:5555/categories'),
-                fetch('http://localhost:5555/warehouses')
+                fetch('http://localhost:5555/categories', { headers }),
+                fetch('http://localhost:5555/warehouses', { headers })
             ]);
+            if (!categoriesRes.ok || !warehousesRes.ok) {
+                console.error('Failed to fetch dropdown data');
+                navigate('/login');
+                return;
+            }
 
             setCategories(await categoriesRes.json());
             setWarehouses(await warehousesRes.json());
@@ -34,22 +66,30 @@ function AddProduct() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (!user) {
-            alert('Please login to add products');
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login to continue');
+            navigate('/login');
             return;
         }
 
         try {
-            const response = await fetch('http://localhost:5555/products', {
-                method: 'POST',
+            const method = editingProduct ? 'PATCH' : 'POST';
+            const url = editingProduct
+                ? `http://localhost:5555/products/${editingProduct.id}`
+                : 'http://localhost:5555/products';
+
+            const response = await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     ...formData,
                     price: parseFloat(formData.price),
-                    
+                    quantity: parseInt(formData.quantity, 10),
                     user_id: user.id
                 }),
             });
@@ -58,13 +98,14 @@ function AddProduct() {
                 navigate('/products');
             } else {
                 const errorData = await response.json();
-                alert('Error adding product: ' + errorData.error);
+                alert('Error saving product: ' + errorData.error);
             }
         } catch (error) {
-            console.error('Error adding product:', error);
+            console.error('Error saving product:', error);
         }
     };
 
+   
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -74,7 +115,7 @@ function AddProduct() {
 
     return (
         <div className="add-product">
-            <h1>Add New Product</h1>
+            <h1>{editingProduct ? 'Edit Product' : 'Add New Product'}</h1>
             
             <form onSubmit={handleSubmit} className="product-form">
                 <div className="form-group">
@@ -113,7 +154,12 @@ function AddProduct() {
 
                 <div className="form-group">
                     <label>Category:</label>
-                    <select name="category_id" value={formData.category_id} onChange={handleChange} required>
+                    <select 
+                        name="category_id" 
+                        value={formData.category_id} 
+                        onChange={handleChange} 
+                        required
+                    >
                         <option value="">Select Category</option>
                         {categories.map(category => (
                             <option key={category.id} value={category.id}>
@@ -125,7 +171,12 @@ function AddProduct() {
 
                 <div className="form-group">
                     <label>Warehouse:</label>
-                    <select name="warehouse_id" value={formData.warehouse_id} onChange={handleChange} required>
+                    <select 
+                        name="warehouse_id" 
+                        value={formData.warehouse_id} 
+                        onChange={handleChange} 
+                        required
+                    >
                         <option value="">Select Warehouse</option>
                         {warehouses.map(warehouse => (
                             <option key={warehouse.id} value={warehouse.id}>
@@ -135,7 +186,9 @@ function AddProduct() {
                     </select>
                 </div>
 
-                <button type="submit" className="submit-btn">Add Product</button>
+                <button type="submit" className="submit-btn">
+                    {editingProduct ? 'Update Product' : 'Add Product'}
+                </button>
             </form>
         </div>
     );

@@ -13,11 +13,24 @@ function Home() {
 
     const fetchData = async () => {
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('No token found, please log in.');
+                return;
+            }
+            const headers = {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            };
             const [categoriesRes, warehousesRes, statsRes] = await Promise.all([
-                fetch('http://localhost:5555/categories'),
-                fetch('http://localhost:5555/warehouses'),
-                fetch('http://localhost:5555/stats')
+                fetch('http://localhost:5555/categories', { headers }),
+                fetch('http://localhost:5555/warehouses', { headers }),
+                fetch('http://localhost:5555/stats', { headers })
             ]);
+            if (!categoriesRes.ok || !warehousesRes.ok || !statsRes.ok) {
+            console.error("Unauthorized or failed request");
+            return;
+        }
 
             setCategories(await categoriesRes.json());
             setWarehouses(await warehousesRes.json());

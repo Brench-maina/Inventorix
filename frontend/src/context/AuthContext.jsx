@@ -16,9 +16,10 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in on app start
+        // Load saved session on app start
         const savedUser = localStorage.getItem('inventorix_user');
-        if (savedUser) {
+        const savedToken = localStorage.getItem('token');
+        if (savedUser && savedToken) {
             setUser(JSON.parse(savedUser));
         }
         setIsLoading(false);
@@ -35,9 +36,15 @@ export const AuthProvider = ({ children }) => {
             });
 
             if (response.ok) {
-                const userData = await response.json();
-                setUser(userData);
-                localStorage.setItem('inventorix_user', JSON.stringify(userData));
+                // expect backend to return { token, user }
+                const { token, user } = await response.json();
+
+                setUser(user);
+
+                // Save both user and token
+                localStorage.setItem('inventorix_user', JSON.stringify(user));
+                localStorage.setItem('token', token);
+
                 setIsLoginOpen(false);
                 return { success: true };
             } else {
@@ -74,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('inventorix_user');
+        localStorage.removeItem('token');
     };
 
     const openLogin = () => setIsLoginOpen(true);

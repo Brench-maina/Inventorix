@@ -5,8 +5,8 @@ function ProductCard({ product, onEdit, onDelete }) {
         <div className="product-card">
             <h3>{product.name}</h3>
             <div className="product-details">
-                <p><strong>Category:</strong> {product.category?.name}</p>
-                <p><strong>Warehouse ID:</strong> {product.warehouse_id}</p>
+                  <p><strong>Category:</strong> {product.category || "Uncategorized"}</p>
+                  <p><strong>Warehouse:</strong> {product.warehouse || "None"}</p>
                 <p><strong>Price:</strong> ${product.price}</p>
                 <p><strong>Quantity:</strong> {product.quantity}</p>
             </div>

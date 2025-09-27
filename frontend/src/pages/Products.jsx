@@ -12,7 +12,23 @@ function Products() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('http://localhost:5555/products');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('No token found, please log in.');
+                navigate ('/login');
+                return;
+            }
+            const response = await fetch('http://localhost:5555/products',{
+            headers:{
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+    if (!response.ok) {
+       console.error("Unauthorized or failed request");
+       navigate('/login');
+       return;
+    }
             const data = await response.json();
             setProducts(data);
         } catch (error) {
@@ -27,8 +43,13 @@ function Products() {
     const handleDelete = async (productId) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
+                const token = localStorage.getItem('token');
                 await fetch(`http://localhost:5555/products/${productId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 
+                        "Authorization": `Bearer ${localStorage.getItem('token')}`,
+                        "Content-Type": "application/json" 
+                    }
                 });
                 fetchProducts(); // Refresh the list
             } catch (error) {
