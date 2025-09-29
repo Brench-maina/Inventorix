@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 function LoginForm() {
     const { login, signup, closeLogin, isLoginOpen } = useAuth();
@@ -11,6 +12,7 @@ function LoginForm() {
         password: ''
     });
     const [error, setError] = useState('');
+    const navigate = useNavigate();
 
     if (!isLoginOpen) return null;
 
@@ -23,7 +25,9 @@ function LoginForm() {
             if (result.success) {
                 // Auto-login after signup
                 const loginResult = await login(formData.username, formData.password);
-                if (!loginResult.success) {
+                if (loginResult.success) {
+                   closeLogin();      
+                   navigate('/');  
                     setError(loginResult.error);
                 }
             } else {
@@ -31,7 +35,9 @@ function LoginForm() {
             }
         } else {
             const result = await login(formData.username, formData.password);
-            if (!result.success) {
+            if (result.success) {
+                closeLogin();         
+                navigate('/');
                 setError(result.error);
             }
         }

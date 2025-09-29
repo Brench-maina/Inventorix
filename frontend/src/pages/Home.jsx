@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import CategoryCard from '../components/CategoryCard';
 import WarehouseCard from '../components/WarehouseCard';
+import { useAuth } from '../context/AuthContext';  
 
 function Home() {
+      const { user } = useAuth();
     const [categories, setCategories] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [stats, setStats] = useState({ total_products: 0, total_categories: 0, total_warehouses: 0 });
 
     useEffect(() => {
+        if (user) {
         fetchData();
-    }, []);
+        }
+    }, [user]);
 
     const fetchData = async () => {
         try {

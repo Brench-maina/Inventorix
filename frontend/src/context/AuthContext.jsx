@@ -12,6 +12,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }) => {
         const savedToken = localStorage.getItem('token');
         if (savedUser && savedToken) {
             setUser(JSON.parse(savedUser));
+            setToken(savedToken);
         }
         setIsLoading(false);
     }, []);
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }) => {
                 const { token, user } = await response.json();
 
                 setUser(user);
+                setToken(token);
 
                 // Save both user and token
                 localStorage.setItem('inventorix_user', JSON.stringify(user));
@@ -80,6 +83,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         setUser(null);
+        setToken(null);
         localStorage.removeItem('inventorix_user');
         localStorage.removeItem('token');
     };
@@ -89,6 +93,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        token,
         isLoginOpen,
         isLoading,
         login,
