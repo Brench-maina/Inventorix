@@ -3,6 +3,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from models import db, User, Product, Category, Warehouse
 from auth import token_required
+from flask import send_from_directory
 import os
 
 app = Flask(__name__)
@@ -234,6 +235,14 @@ def stats(current_user):
         "total_categories": Category.query.filter_by(user_id=current_user.id).count(),
         "total_warehouses": Warehouse.query.filter_by(user_id=current_user.id).count()
     }), 200
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve(path):
+    if path != "" and os.path.exists("static/" + path):
+        return send_from_directory("static", path)
+    else:
+        return send_from_directory("static", "index.html")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)
