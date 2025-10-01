@@ -6,6 +6,9 @@ function Products() {
     const [products, setProducts] = useState([]);
     const navigate = useNavigate();
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
+
     useEffect(() => {
         fetchProducts();
     }, []);
@@ -18,7 +21,7 @@ function Products() {
                 navigate ('/login');
                 return;
             }
-            const response = await fetch('http://localhost:5555/products',{
+            const response = await fetch(`${API_URL}/products`,{
             headers:{
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
@@ -44,7 +47,7 @@ function Products() {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
                 const token = localStorage.getItem('token');
-                await fetch(`http://localhost:5555/products/${productId}`, {
+                await fetch(`${API_URL}/products/${productId}`, {
                     method: 'DELETE',
                     headers: { 
                         "Authorization": `Bearer ${localStorage.getItem('token')}`,

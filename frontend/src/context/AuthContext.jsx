@@ -16,6 +16,8 @@ export const AuthProvider = ({ children }) => {
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     useEffect(() => {
         // Load saved session on app start
         const savedUser = localStorage.getItem('inventorix_user');
@@ -29,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            const response = await fetch('http://localhost:5555/login', {
+            const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -61,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (userData) => {
         try {
-            const response = await fetch('http://localhost:5555/users', {
+            const response = await fetch(`${API_URL}/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

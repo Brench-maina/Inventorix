@@ -9,6 +9,8 @@ function Home() {
     const [warehouses, setWarehouses] = useState([]);
     const [stats, setStats] = useState({ total_products: 0, total_categories: 0, total_warehouses: 0 });
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     useEffect(() => {
         if (user) {
         fetchData();
@@ -27,9 +29,9 @@ function Home() {
                 "Content-Type": "application/json"
             };
             const [categoriesRes, warehousesRes, statsRes] = await Promise.all([
-                fetch('http://localhost:5555/categories', { headers }),
-                fetch('http://localhost:5555/warehouses', { headers }),
-                fetch('http://localhost:5555/stats', { headers })
+                fetch(`${API_URL}/categories`, { headers }),
+                fetch(`${API_URL}/warehouses`, { headers }),
+                fetch(`${API_URL}/stats`, { headers })
             ]);
             if (!categoriesRes.ok || !warehousesRes.ok || !statsRes.ok) {
             console.error("Unauthorized or failed request");

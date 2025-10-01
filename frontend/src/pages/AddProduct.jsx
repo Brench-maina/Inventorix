@@ -18,6 +18,8 @@ function AddProduct() {
     const location = useLocation();
     const editingProduct = location.state?.product || null;
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     //Pre-fill form if editing
     useEffect(() => {
         if (editingProduct) {
@@ -48,8 +50,8 @@ function AddProduct() {
                 "Content-Type": "application/json"
             };
             const [categoriesRes, warehousesRes] = await Promise.all([
-                fetch('http://localhost:5555/categories', { headers }),
-                fetch('http://localhost:5555/warehouses', { headers })
+                fetch(`${API_URL}/categories`, { headers }),
+                fetch(`${API_URL}/warehouses`, { headers })
             ]);
             if (!categoriesRes.ok || !warehousesRes.ok) {
                 console.error('Failed to fetch dropdown data');
@@ -77,8 +79,8 @@ function AddProduct() {
         try {
             const method = editingProduct ? 'PATCH' : 'POST';
             const url = editingProduct
-                ? `http://localhost:5555/products/${editingProduct.id}`
-                : 'http://localhost:5555/products';
+                ? `${API_URL}/products/${editingProduct.id}`
+                : `${API_URL}/products`;
 
             const response = await fetch(url, {
                 method,

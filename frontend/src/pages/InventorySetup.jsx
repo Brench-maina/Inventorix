@@ -32,6 +32,8 @@ function InventorySetup() {
         ? { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" };
 
+    const API_URL = import.meta.env.VITE_API_URL;   
+
     useEffect(() => {
         if (!user) return;
         fetchWarehouses();
@@ -41,7 +43,7 @@ function InventorySetup() {
     // Fetch warehouses
     const fetchWarehouses = async () => {
         try {
-            const res = await fetch('http://localhost:5555/warehouses', { headers });
+            const res = await fetch(`${API_URL}/warehouses`, { headers });
             if (!res.ok) {
                 console.error('Failed to fetch warehouses');
                 return;
@@ -56,7 +58,7 @@ function InventorySetup() {
     // Fetch categories
     const fetchCategories = async () => {
         try {
-            const res = await fetch('http://localhost:5555/categories', { headers });
+            const res = await fetch(`${API_URL}/categories`, { headers });
             if (!res.ok) {
                 console.error('Failed to fetch categories');
                 return;
@@ -79,8 +81,8 @@ function InventorySetup() {
 
         try {
             const url = editingWarehouse
-                ? `http://localhost:5555/warehouses/${editingWarehouse.id}`
-                : 'http://localhost:5555/warehouses';
+                ? `${API_URL}/warehouses/${editingWarehouse.id}`
+                : `${API_URL}/warehouses`;
             const method = editingWarehouse ? 'PATCH' : 'POST';
 
             const res = await fetch(url, {
@@ -114,8 +116,8 @@ function InventorySetup() {
 
         try {
             const url = editingCategory
-                ? `http://localhost:5555/categories/${editingCategory.id}`
-                : 'http://localhost:5555/categories';
+                ? `${API_URL}/categories/${editingCategory.id}`
+                : `${API_URL}/categories`;
             const method = editingCategory ? 'PATCH' : 'POST';
 
             const res = await fetch(url, {
@@ -144,7 +146,7 @@ function InventorySetup() {
         if (!token) return;
 
         try {
-            const res = await fetch(`http://localhost:5555/warehouses/${warehouseId}`, {
+            const res = await fetch(`${API_URL}/warehouses/${warehouseId}`, {
                 method: 'DELETE',
                 headers
             });
@@ -169,7 +171,7 @@ function InventorySetup() {
         if (!token) return;
 
         try {
-            const res = await fetch(`http://localhost:5555/categories/${categoryId}`, {
+            const res = await fetch(`${API_URL}/categories/${categoryId}`, {
                 method: 'DELETE',
                 headers
             });
